@@ -3,10 +3,6 @@
 
 
 
-# Need to add exceptions to this code
-# Rearrange following best practices
-
-
 import json
 import urllib2
 import urllib
@@ -24,7 +20,7 @@ logger.addHandler(Locu_log)
 
 
 
-city = 'nyc'
+city = 'Enter a city to query'
 api_key = 'Your API Key'
 host = 'Your host'
 port = 'Splunk mgmt port'
@@ -48,7 +44,6 @@ def locu_data():
         return Business
     except Exception as error:
         logger.error(error)
-        sys.exit()
 
 def event_gen():
     data=locu_data()
@@ -58,10 +53,13 @@ def event_gen():
             len_data=len_data-1
             try:
                 cat=[x.encode('UTF8') for x in line2['categories']]
-                print ('Name = {},Locality = {}, Website = {}, Address = {}, Zip Code = {},Phone = {},Longitude = {},Latitude = {},Categories = {} \n'.format(line2['name'],line2['locality'],line2['website_url'],line2['street_address'],line2['postal_code'],line2['phone'],line2['long'],line2['lat'],[cat])).replace('[', '').replace(']','')
+                yield ('Name = {},Locality = {}, Website = {}, Address = {}, Zip Code = {},Phone = {},Longitude = {},Latitude = {},Categories = {} \n'.format(line2['name'],line2['locality'],line2['website_url'],line2['street_address'],line2['postal_code'],line2['phone'],line2['long'],line2['lat'],[cat])).replace('[', '').replace(']','')
+            except Exception as error:
+                if error == UnicodeEncodeError:
+                   line2['name'].encode('UTF8')
+                else :
+                    logger.error(error)
 
-            except UnicodeEncodeError:
-                    line2['name'].encode('UTF8')
 
 def splunk_connect():
     logger.info('Initiating contact with Splunk')
@@ -75,7 +73,7 @@ def splunk_connect():
         print 'Connecting to Splunk, please wait'
         return service
     except Exception as error :
-        logger.error('Unable to connect to splunk:'+ ' ' + error)
+        logger.error(error)
 
 
 def splunk_push(idx, st):
@@ -90,13 +88,14 @@ def splunk_push(idx, st):
             target.submit(event=str(line),sourcetype=sourcetype)
         print 'Data push to Splunk is complete'
     except Exception as error :
-        logger.error('Unable to connect to splunk:'+ ' ' + error)
+        logger.error(error)
 
 
 
 if __name__ == '__main__':
 
     splunk_push('locu', 'locu_api')
+
 
 
 
